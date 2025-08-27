@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// Game engine that manages tic-tac-toe game logic and state
 class TicTacEngine: ObservableObject {
@@ -13,6 +14,7 @@ class TicTacEngine: ObservableObject {
     @Published var currentPlayer: GamePiece = .x
     @Published var gameResult: GameResult = .ongoing
     @Published var difficulty: Difficulty = .normal
+    @Published var selectedMode: GameMode = .singlePlayer
     
     private let ai = MinimaxAI()
     
@@ -40,24 +42,22 @@ class TicTacEngine: ObservableObject {
     /// Makes a move at the specified position
     func makeMove(at position: Int) {
         guard gameResult.isGameOver == false,
-              currentPlayer == .x,
               board.canPlaceAt(position) else { return }
         
-        // Player move
-        board.place(.x, at: position)
+        board.place(currentPlayer, at: position)
         checkGameResult()
         
         if !gameResult.isGameOver {
             nextTurn()
-            saveGameState()
             
-            // Computer move with delay for better UX
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.makeComputerMove()
+            if selectedMode == .singlePlayer {
+                // Computer move with delay for better UX
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    self.makeComputerMove()
+                }
             }
-        } else {
-            saveGameState()
         }
+        saveGameState()
     }
     
     /// Makes the computer move based on current difficulty
@@ -81,6 +81,9 @@ class TicTacEngine: ObservableObject {
     /// Checks for win conditions or draw
     private func checkGameResult() {
         gameResult = evaluateBoard(board)
+        if gameResult.isGameOver {
+            UIAccessibility.post(notification: .announcement, argument: accessibilityAnnouncement)
+        }
     }
     
     /// Evaluates the current board state
@@ -127,6 +130,7 @@ class TicTacEngine: ObservableObject {
     /// Advances to the next turn
     private func nextTurn() {
         currentPlayer = currentPlayer.opponent
+        UIAccessibility.post(notification: .announcement, argument: accessibilityAnnouncement)
     }
     
     /// Resets the game to initial state
@@ -143,6 +147,16 @@ class TicTacEngine: ObservableObject {
         UserDefaults.standard.set(newDifficulty.rawValue, forKey: "GameDifficulty")
     }
     
+    func changeGameMode(_ newMode: GameMode) {
+        selectedMode = newMode
+        UserDefaults.standard.set(newMode.rawValue, forKey: "GameMode")
+        resetGame()
+    }
+    
+    var accessibilityAnnouncement: String {
+        AccessibilityHelper.gameStateAnnouncement(for: gameResult, currentPlayer: currentPlayer, mode: selectedMode)
+    }
+    
     // MARK: - Persistence
     
     private func saveGameState() {
@@ -151,9 +165,16 @@ class TicTacEngine: ObservableObject {
         }
         UserDefaults.standard.set(currentPlayer.rawValue, forKey: "CurrentPlayer")
         UserDefaults.standard.set(gameResult == .ongoing, forKey: "GameOngoing")
+        UserDefaults.standard.set(selectedMode.rawValue, forKey: "GameMode")
     }
     
     private func loadGameState() {
+        // Load mode
+        if let savedMode = UserDefaults.standard.object(forKey: "GameMode") as? String,
+           let mode = GameMode(rawValue: savedMode) {
+            self.selectedMode = mode
+        }
+        
         // Load difficulty
         if let savedDifficulty = UserDefaults.standard.object(forKey: "GameDifficulty") as? String,
            let difficulty = Difficulty(rawValue: savedDifficulty) {
@@ -179,7 +200,7 @@ class TicTacEngine: ObservableObject {
         checkGameResult()
         
         // If it's computer's turn and game is ongoing, make computer move
-        if currentPlayer == .o && !gameResult.isGameOver {
+        if selectedMode == .singlePlayer && currentPlayer == .o && !gameResult.isGameOver {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.makeComputerMove()
             }

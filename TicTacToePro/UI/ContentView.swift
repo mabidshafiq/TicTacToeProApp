@@ -1,5 +1,5 @@
 //
-//  Untit ContentView led.swift
+//  ContentView.swift
 //  TicTacToePro
 //
 //  Created by Muhammad Abid on 26/8/2025.
@@ -11,8 +11,8 @@ struct ContentView: View {
     @StateObject private var engine = TicTacEngine()
     @StateObject private var haptics = Haptics()
     @State private var showSettings = false
-    @AppStorage("playerWins") private var playerWins = 0
-    @AppStorage("computerWins") private var computerWins = 0
+    @AppStorage("playerXWins") private var playerXWins = 0
+    @AppStorage("playerOWins") private var playerOWins = 0
     @AppStorage("draws") private var draws = 0
     
     var body: some View {
@@ -26,9 +26,9 @@ struct ContentView: View {
                             .fontWeight(.bold)
                         
                         HStack(spacing: 30) {
-                            ScoreView(title: "You", score: playerWins, color: .blue)
+                            ScoreView(title: scoreTitle(for: .x), score: playerXWins, color: .blue)
                             ScoreView(title: "Draws", score: draws, color: .orange)
-                            ScoreView(title: "Computer", score: computerWins, color: .red)
+                            ScoreView(title: scoreTitle(for: .o), score: playerOWins, color: .red)
                         }
                     }
                     .padding(.top)
@@ -49,9 +49,11 @@ struct ContentView: View {
                                 .foregroundColor(.secondary)
                         }
                         
-                        Text("Difficulty: \(engine.difficulty.rawValue)")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        if engine.selectedMode == .singlePlayer {
+                            Text("Difficulty: \(engine.difficulty.rawValue)")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
                     }
                     .animation(.spring(response: 0.5, dampingFraction: 0.8), value: engine.gameResult)
                     
@@ -69,6 +71,7 @@ struct ContentView: View {
                     
                     // Controls
                     ControlsBar(
+                        engine: engine,
                         onNewGame: {
                             engine.resetGame()
                         },
@@ -93,18 +96,26 @@ struct ContentView: View {
         }
     }
     
+    private func scoreTitle(for player: GamePiece) -> String {
+        if engine.selectedMode == .twoPlayers {
+            return player == .x ? "Player X" : "Player O"
+        }
+        return player == .x ? "You" : "Computer"
+    }
+    
     private var turnIndicatorText: String {
-        if engine.currentPlayer == .x {
-            return "Your turn"
-        } else {
-            return "Computer thinking..."
+        switch engine.selectedMode {
+        case .singlePlayer:
+            return engine.currentPlayer == .x ? "Your turn" : "Computer thinking..."
+        case .twoPlayers:
+            return "Player \(engine.currentPlayer.rawValue.uppercased())'s Turn"
         }
     }
     
     private var gameResultColor: Color {
         switch engine.gameResult {
         case .win(let winner):
-            return winner.isPlayer ? .green : .red
+            return winner == .x ? .blue : .red
         case .draw:
             return .orange
         case .ongoing:
@@ -115,10 +126,10 @@ struct ContentView: View {
     private func updateScores(for result: GameResult) {
         switch result {
         case .win(let winner):
-            if winner.isPlayer {
-                playerWins += 1
+            if winner == .x {
+                playerXWins += 1
             } else {
-                computerWins += 1
+                playerOWins += 1
             }
         case .draw:
             draws += 1

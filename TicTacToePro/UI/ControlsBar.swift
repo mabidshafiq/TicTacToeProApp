@@ -8,20 +8,34 @@
 import SwiftUI
 
 struct ControlsBar: View {
+    @ObservedObject var engine: TicTacEngine
     let onNewGame: () -> Void
     let onSettings: () -> Void
     
     var body: some View {
-        HStack(spacing: 20) {
-            Button("New Game") {
-                onNewGame()
+        VStack(spacing: 20) {
+            Picker("Game Mode", selection: $engine.selectedMode) {
+                ForEach(GameMode.allCases, id: \.self) {
+                    Text($0.rawValue).tag($0)
+                }
             }
-            .buttonStyle(GameButtonStyle(color: .blue))
+            .pickerStyle(SegmentedPickerStyle())
+            .padding(.horizontal, 40)
+            .onChange(of: engine.selectedMode) { _, newMode in
+                engine.changeGameMode(newMode)
+            }
             
-            Button("Settings") {
-                onSettings()
+            HStack(spacing: 20) {
+                Button("New Game") {
+                    onNewGame()
+                }
+                .buttonStyle(GameButtonStyle(color: .blue))
+                
+                Button("Settings") {
+                    onSettings()
+                }
+                .buttonStyle(GameButtonStyle(color: .gray))
             }
-            .buttonStyle(GameButtonStyle(color: .gray))
         }
     }
 }

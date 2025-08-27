@@ -10,50 +10,64 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var engine: TicTacEngine
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("playerWins") private var playerWins = 0
-    @AppStorage("computerWins") private var computerWins = 0
+    @AppStorage("playerXWins") private var playerXWins = 0
+    @AppStorage("playerOWins") private var playerOWins = 0
     @AppStorage("draws") private var draws = 0
     
     var body: some View {
         NavigationView {
             Form {
-                Section("Difficulty Level") {
-                    ForEach(TicTacEngine.Difficulty.allCases, id: \.self) { difficulty in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(difficulty.rawValue)
-                                    .font(.headline)
-                                Text(difficulty.description)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            if engine.difficulty == difficulty {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.blue)
-                            }
+                Section("Game Mode") {
+                    Picker("Mode", selection: $engine.selectedMode) {
+                        ForEach(GameMode.allCases, id: \.self) {
+                            Text($0.rawValue).tag($0)
                         }
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            engine.changeDifficulty(difficulty)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .onChange(of: engine.selectedMode) { _, newMode in
+                        engine.changeGameMode(newMode)
+                    }
+                }
+                
+                if engine.selectedMode == .singlePlayer {
+                    Section("Difficulty Level") {
+                        ForEach(TicTacEngine.Difficulty.allCases, id: \.self) { difficulty in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(difficulty.rawValue)
+                                        .font(.headline)
+                                    Text(difficulty.description)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                if engine.difficulty == difficulty {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                engine.changeDifficulty(difficulty)
+                            }
                         }
                     }
                 }
                 
                 Section("Statistics") {
                     HStack {
-                        Text("Games Won")
+                        Text(playerXTitle)
                         Spacer()
-                        Text("\(playerWins)")
+                        Text("\(playerXWins)")
                             .foregroundColor(.blue)
                     }
                     
                     HStack {
-                        Text("Games Lost")
+                        Text(playerOTitle)
                         Spacer()
-                        Text("\(computerWins)")
+                        Text("\(playerOWins)")
                             .foregroundColor(.red)
                     }
                     
@@ -64,12 +78,12 @@ struct SettingsView: View {
                             .foregroundColor(.orange)
                     }
                     
-                    let totalGames = playerWins + computerWins + draws
-                    if totalGames > 0 {
+                    let totalGames = playerXWins + playerOWins + draws
+                    if totalGames > 0 && engine.selectedMode == .singlePlayer {
                         HStack {
                             Text("Win Rate")
                             Spacer()
-                            Text("\(Int((Double(playerWins) / Double(totalGames)) * 100))%")
+                            Text("\(Int((Double(playerXWins) / Double(totalGames)) * 100))%")
                                 .foregroundColor(.green)
                         }
                     }
@@ -77,8 +91,8 @@ struct SettingsView: View {
                 
                 Section("Actions") {
                     Button("Reset Statistics") {
-                        playerWins = 0
-                        computerWins = 0
+                        playerXWins = 0
+                        playerOWins = 0
                         draws = 0
                     }
                     .foregroundColor(.red)
@@ -94,20 +108,9 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("1.0.0")
+                        Text("1.1.0")
                             .foregroundColor(.secondary)
                     }
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("How to Play")
-                            .font(.headline)
-                        Text("• Tap any empty square to place your X")
-                        Text("• Get three in a row to win")
-                        Text("• Choose difficulty to match your skill")
-                        Text("• Unbeatable mode uses perfect AI")
-                    }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
                 }
             }
             .navigationTitle("Settings")
@@ -120,5 +123,13 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+    
+    private var playerXTitle: String {
+        engine.selectedMode == .twoPlayers ? "Player X Wins" : "Games Won"
+    }
+    
+    private var playerOTitle: String {
+        engine.selectedMode == .twoPlayers ? "Player O Wins" : "Games Lost"
     }
 }

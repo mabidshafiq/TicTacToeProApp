@@ -11,15 +11,16 @@ import SwiftUI
 struct AccessibilityHelper {
     
     /// Creates an accessibility label for a board position
-    static func boardPositionLabel(for index: Int, piece: GamePiece) -> String {
+    static func boardPositionLabel(for index: Int, piece: GamePiece, mode: GameMode, currentPlayer: GamePiece) -> String {
         let row = index / 3 + 1
         let col = index % 3 + 1
         
         if piece == .empty {
-            return "Empty square at row \(row), column \(col). Tap to place your X."
+            let turnDescription = (mode == .twoPlayers) ? "Player \(currentPlayer.rawValue.uppercased())" : "Your"
+            return "Empty square at row \(row), column \(col). Tap to place \(turnDescription) piece."
         } else {
-            let player = piece.isPlayer ? "Your X" : "Computer's O"
-            return "\(player) at row \(row), column \(col)."
+            let playerDescription = (mode == .twoPlayers) ? "Player \(piece.rawValue.uppercased())" : (piece.isPlayer ? "Your X" : "Computer's O")
+            return "\(playerDescription) at row \(row), column \(col)."
         }
     }
     
@@ -36,19 +37,19 @@ struct AccessibilityHelper {
     }
     
     /// Creates an accessibility announcement for game state changes
-    static func gameStateAnnouncement(for result: GameResult, currentPlayer: GamePiece) -> String {
+    static func gameStateAnnouncement(for result: GameResult, currentPlayer: GamePiece, mode: GameMode) -> String {
         switch result {
         case .ongoing:
-            if currentPlayer.isPlayer {
-                return "Your turn. Tap an empty square to make your move."
+            if mode == .singlePlayer {
+                return currentPlayer.isPlayer ? "Your turn. Tap an empty square to make your move." : "Computer is thinking."
             } else {
-                return "Computer is thinking."
+                return "Player \(currentPlayer.rawValue.uppercased())'s turn."
             }
         case .win(let winner):
-            if winner.isPlayer {
-                return "Congratulations! You won the game!"
+            if mode == .singlePlayer {
+                return winner.isPlayer ? "Congratulations! You won the game!" : "Computer wins this game."
             } else {
-                return "Computer wins this game."
+                return "Player \(winner.rawValue.uppercased()) wins!"
             }
         case .draw:
             return "The game ended in a draw."
