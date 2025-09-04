@@ -12,7 +12,7 @@ struct BoardView: View {
     let onSquareTap: (Int) -> Void
     
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), spacing: 4) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
             ForEach(0..<9, id: \.self) { index in
                 SquareView(
                     piece: board[index],
@@ -24,10 +24,42 @@ struct BoardView: View {
                 .aspectRatio(1.0, contentMode: .fit)
             }
         }
-        .padding(8)
+        .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.secondary.opacity(0.1))
+            ZStack {
+                // Outer glow
+                RoundedRectangle(cornerRadius: 25)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white.opacity(0.1),
+                                Color.white.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .blur(radius: 1)
+                
+                // Main background with glass effect
+                RoundedRectangle(cornerRadius: 25)
+                    .fill(Color.white.opacity(0.08))
+                    .background(
+                        RoundedRectangle(cornerRadius: 25)
+                            .stroke(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white.opacity(0.3),
+                                        Color.white.opacity(0.1)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2
+                            )
+                    )
+                    .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+            }
         )
     }
 }
